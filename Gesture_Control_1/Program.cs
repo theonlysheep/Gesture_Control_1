@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using RS = Intel.RealSense;
 
-namespace Gesture_Control_1
+namespace streams.cs
 {
     static class Program
     {
@@ -16,7 +17,12 @@ namespace Gesture_Control_1
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Form1());
+            RS.Session session = RS.Session.CreateInstance();
+            if (session != null)
+            {
+                Application.Run(new MainForm(session));
+                session.Dispose();
+            }
         }
     }
 }
