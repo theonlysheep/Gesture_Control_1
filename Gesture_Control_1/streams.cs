@@ -18,7 +18,7 @@ namespace streams.cs
         public RS.DeviceInfo DeviceInfo { get; set; }
 
         public  RS.StreamProfileSet StreamProfileSet { get; set; }
-        public RS.StreamType MainPanel { get; set; }
+        public RS.StreamType StreamType { get; set; }
 
         public bool Synced { get; set; }
 
@@ -29,7 +29,7 @@ namespace streams.cs
             StreamProfileSet = null;
             Mirror = true;
             Stop = false;
-            MainPanel = RS.StreamType.STREAM_TYPE_ANY;
+            StreamType = RS.StreamType.STREAM_TYPE_ANY;
 
             Synced = true;
         }
@@ -117,18 +117,12 @@ namespace streams.cs
                         /* Render streams */
                         EventHandler<RenderFrameEventArgs> render = RenderFrame;
                         RS.Image image = null;
-                        if (MainPanel != RS.StreamType.STREAM_TYPE_ANY && render != null)
+                        if (StreamType != RS.StreamType.STREAM_TYPE_ANY && render != null)
                         {
-                            image = sample[MainPanel];
+                            image = sample[StreamType];
                             render(this, new RenderFrameEventArgs(0, image));
                         }
-
-
-                        /* Optional: Set Mirror State */
-                        mirror = Mirror ? RS.MirrorMode.MIRROR_MODE_HORIZONTAL : RS.MirrorMode.MIRROR_MODE_DISABLED;
-                        if (mirror != sm.CaptureManager.Device.MirrorMode)
-                            sm.CaptureManager.Device.MirrorMode = mirror;
-
+                        
                         /* Optional: Show performance tick */
 
                         if (image != null) timer.Tick(RS.ImageExtension.PixelFormatToString(image.Info.format) + " " + image.Info.width + "x" + image.Info.height);

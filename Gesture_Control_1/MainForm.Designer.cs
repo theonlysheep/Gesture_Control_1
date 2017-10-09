@@ -32,7 +32,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            this.menuStrip1 = new System.Windows.Forms.MenuStrip();
+            this.menuStrip = new System.Windows.Forms.MenuStrip();
             this.deviceMenu = new System.Windows.Forms.ToolStripMenuItem();
             this.colorMenu = new System.Windows.Forms.ToolStripMenuItem();
             this.depthMenu = new System.Windows.Forms.ToolStripMenuItem();
@@ -57,7 +57,7 @@
             this.radioColor = new System.Windows.Forms.RadioButton();
             this.statusStrip = new System.Windows.Forms.StatusStrip();
             this.statusStripLabel = new System.Windows.Forms.ToolStripStatusLabel();
-            this.menuStrip1.SuspendLayout();
+            this.menuStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.rgbImage)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.depthImage)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.resultImage)).BeginInit();
@@ -67,18 +67,18 @@
             this.statusStrip.SuspendLayout();
             this.SuspendLayout();
             // 
-            // menuStrip1
+            // menuStrip
             // 
-            this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.menuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.deviceMenu,
             this.colorMenu,
             this.depthMenu,
             this.irMenu});
-            this.menuStrip1.Location = new System.Drawing.Point(0, 0);
-            this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(996, 24);
-            this.menuStrip1.TabIndex = 0;
-            this.menuStrip1.Text = "menuStrip1";
+            this.menuStrip.Location = new System.Drawing.Point(0, 0);
+            this.menuStrip.Name = "menuStrip";
+            this.menuStrip.Size = new System.Drawing.Size(996, 24);
+            this.menuStrip.TabIndex = 0;
+            this.menuStrip.Text = "menuStrip1";
             // 
             // deviceMenu
             // 
@@ -239,6 +239,7 @@
             this.buttonStop.TabIndex = 1;
             this.buttonStop.Text = "Stop";
             this.buttonStop.UseVisualStyleBackColor = true;
+            this.buttonStop.Click += new System.EventHandler(this.buttonStop_Click);
             // 
             // buttonStart
             // 
@@ -292,6 +293,7 @@
             // radioColor
             // 
             this.radioColor.AutoSize = true;
+            this.radioColor.Checked = true;
             this.radioColor.Location = new System.Drawing.Point(3, 3);
             this.radioColor.Name = "radioColor";
             this.radioColor.Size = new System.Drawing.Size(49, 17);
@@ -331,12 +333,12 @@
             this.Controls.Add(this.resultImage);
             this.Controls.Add(this.depthImage);
             this.Controls.Add(this.rgbImage);
-            this.Controls.Add(this.menuStrip1);
-            this.MainMenuStrip = this.menuStrip1;
+            this.Controls.Add(this.menuStrip);
+            this.MainMenuStrip = this.menuStrip;
             this.Name = "MainForm";
             this.Text = "MainForm";
-            this.menuStrip1.ResumeLayout(false);
-            this.menuStrip1.PerformLayout();
+            this.menuStrip.ResumeLayout(false);
+            this.menuStrip.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.rgbImage)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.depthImage)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.resultImage)).EndInit();
@@ -354,7 +356,7 @@
 
         #endregion
 
-        private System.Windows.Forms.MenuStrip menuStrip1;
+        private System.Windows.Forms.MenuStrip menuStrip;
         private System.Windows.Forms.ToolStripMenuItem deviceMenu;
         private System.Windows.Forms.ToolStripMenuItem colorMenu;
         private System.Windows.Forms.ToolStripMenuItem depthMenu;
