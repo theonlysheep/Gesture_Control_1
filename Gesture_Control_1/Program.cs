@@ -15,14 +15,29 @@ namespace streams.cs
         [STAThread]
         static void Main()
         {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            RS.Session session = RS.Session.CreateInstance();
-            if (session != null)
+            try
             {
-                Application.Run(new MainForm(session));
-                session.Dispose();
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+
+                Manager manager = new Manager();
+
+                manager.CreateSession();
+                manager.CreateSenseManager();
+               
+                
+                if (manager.SenseManager != null && manager.Session !=null)
+                {
+                    Application.Run(new MainForm(manager));
+                    manager.Session.Dispose();
+                    manager.SenseManager.Dispose();
+                }
             }
+            catch (Exception e)
+            {
+                MessageBox.Show(null, e.ToString(), "ERROR", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            
         }
     }
 }

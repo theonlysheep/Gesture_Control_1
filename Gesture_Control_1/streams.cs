@@ -7,30 +7,28 @@ using RS = Intel.RealSense;
 
 namespace streams.cs
 {
-    class RenderStreams
+    class Streams
     {
         public event EventHandler<UpdateStatusEventArgs> UpdateStatus = null;
         public event EventHandler<RenderFrameEventArgs> RenderFrame = null;
 
-        public bool Mirror { get; set; }
+        
         public bool Stop { get; set; }
 
-        public RS.DeviceInfo DeviceInfo { get; set; }
+        private Manager manager;
 
         public  RS.StreamProfileSet StreamProfileSet { get; set; }
         public RS.StreamType StreamType { get; set; }
 
         public bool Synced { get; set; }
 
-        public RenderStreams()
+        public Streams(Manager mngr)
         {
-
-            DeviceInfo = null;
-            StreamProfileSet = null;
-            Mirror = true;
+            manager = mngr;
+            manager.DeviceInfo = null;
+            StreamProfileSet = null;            
             Stop = false;
             StreamType = RS.StreamType.STREAM_TYPE_ANY;
-
             Synced = true;
         }
 
@@ -48,27 +46,21 @@ namespace streams.cs
             try
             {
                 bool sts = true;
+                
+                
 
-                /* Create an instance of the SenseManager interface */
-                RS.SenseManager sm = RS.SenseManager.CreateInstance();
-
-                if (sm == null)
+                if (manager.SenseManager == null)
                 {
                     SetStatus("Failed to create an SDK pipeline object");
                     return;
                 }
-
-
-
-                /* Optional: Set Input Source */
-                if (DeviceInfo != null)
-                    sm.CaptureManager.FilterByDeviceInfo(DeviceInfo);
-
+                
+                
                 /* Set Color & Depth Resolution and enable streams */
                 if (StreamProfileSet != null)
                 {
                     /* Optional: Filter the data based on the request */
-                    sm.CaptureManager.FilterByStreamProfiles(StreamProfileSet);
+                    manager.SenseManager.CaptureManager.FilterByStreamProfiles(StreamProfileSet);
 
                     /* Enable raw data streaming for specific stream types */
                     for (int s = 0; s < RS.Capture.STREAM_LIMIT; s++)
@@ -84,7 +76,7 @@ namespace streams.cs
                             desc.streams[st].sizeMin.width = desc.streams[st].sizeMax.width = info.imageInfo.width;
                             desc.streams[st].options = info.options;
                             desc.receivePartialSample = true;
-                            RS.SampleReader sampleReader = RS.SampleReader.Activate(sm);
+                            RS.SampleReader sampleReader = RS.SampleReader.Activate(manager.SenseManager);
                             sampleReader.EnableStreams(desc);
                         }
                     }
@@ -95,24 +87,20 @@ namespace streams.cs
                 timer.UpdateStatus += UpdateStatus;
 
                 SetStatus("Init Started");
-                if (sm.Init() >= RS.Status.STATUS_NO_ERROR)
+                if (manager.SenseManager.Init() >= RS.Status.STATUS_NO_ERROR)
                 {
                     /* Reset all properties */
-                    sm.CaptureManager.Device.ResetProperties(RS.StreamType.STREAM_TYPE_ANY);
-
-                    /* Set mirror mode */
-                    RS.MirrorMode mirror = Mirror ? RS.MirrorMode.MIRROR_MODE_HORIZONTAL : RS.MirrorMode.MIRROR_MODE_DISABLED;
-                    sm.CaptureManager.Device.MirrorMode = mirror;
+                    manager.SenseManager.CaptureManager.Device.ResetProperties(RS.StreamType.STREAM_TYPE_ANY);
 
                     SetStatus("Streaming");
                     while (!Stop)
                     {
                         /* Wait until a frame is ready: Synchronized or Asynchronous */
-                        if (sm.AcquireFrame(Synced) < RS.Status.STATUS_NO_ERROR)
+                        if (manager.SenseManager.AcquireFrame(Synced) < RS.Status.STATUS_NO_ERROR)
                             break;
 
                         /* Display images */
-                        RS.Sample sample = sm.Sample;
+                        RS.Sample sample = manager.SenseManager.Sample;
 
                         /* Render streams */
                         EventHandler<RenderFrameEventArgs> render = RenderFrame;
@@ -127,7 +115,7 @@ namespace streams.cs
 
                         if (image != null) timer.Tick(RS.ImageExtension.PixelFormatToString(image.Info.format) + " " + image.Info.width + "x" + image.Info.height);
 
-                        sm.ReleaseFrame();
+                        manager.SenseManager.ReleaseFrame();
                     }
                 }
                 else
@@ -136,7 +124,7 @@ namespace streams.cs
                     sts = false;
                 }
 
-                sm.Dispose();
+                manager.SenseManager.Dispose();
                 if (sts) SetStatus("Stopped");
             }
             catch (Exception e)

@@ -18,7 +18,8 @@ namespace streams.cs
     {
         //Global Var
         private RS.Session session;
-        
+        private Manager manager;
+
         private volatile bool closing = false;
         private int current_device_iuid = 0;
 
@@ -32,13 +33,15 @@ namespace streams.cs
 
         // Rendering
         private D2D1Render[] renders = new D2D1Render[2] { new D2D1Render(), new D2D1Render() }; // reder for .NET PictureBox
-        private RenderStreams renderStreams = new RenderStreams();
+        private Streams renderStreams;
 
-        public MainForm(RS.Session session)
+        public MainForm(Manager mngr)
         {
+            manager = mngr;
             InitializeComponent();
+            renderStreams = new Streams(manager);
 
-            this.session = session;
+            this.session = manager.Session;
 
             /* Put stream menu items to array */
             streamMenus[RS.Capture.StreamTypeToIndex(RS.StreamType.STREAM_TYPE_COLOR)] = colorMenu;
@@ -238,14 +241,23 @@ namespace streams.cs
             buttonStop.Enabled = true;
 
             renderStreams.StreamProfileSet = GetStreamSetConfiguration();
-            renderStreams.DeviceInfo = GetCheckedDevice();
+            manager.DeviceInfo = GetCheckedDevice();
             renderStreams.StreamType = GetSelectedStream();
             
+            // ev. verschieben 
             renderStreams.Stop = false;
-            System.Threading.Thread thread = new System.Threading.Thread(DoStreaming);
-            thread.Start();
+
+            // Thread for Streaming 
+            System.Threading.Thread thread1 = new System.Threading.Thread(DoStreaming);
+            thread1.Start();
             System.Threading.Thread.Sleep(5);
 
+            /*
+            // Thread for Hand Recognition 
+            System.Threading.Thread thread2 = new System.Threading.Thread(DoHandsRecognition);
+            thread2.Start();
+            System.Threading.Thread.Sleep(5);
+            */
         }
         
         //?????????????????????????????????????????????
@@ -263,8 +275,15 @@ namespace streams.cs
                 }
             ));
         }
+        /*
+        private void DoHandsRecognition()
+        {
+            HandsRecognition handsRecognition = new HandsRecognition(this);
+            handsRecognition.SimplePipeline();            
+        }
+        */
 
-       
+
         // The StreamProfile structure describes the video stream configuration parameters.
         private RS.StreamProfile GetConfiguration(ToolStripMenuItem m)
         {
@@ -348,7 +367,6 @@ namespace streams.cs
         {
             // Elemente im Hauptfenster müssen über MainThread bearbeitet werden 
             // Über Invoke, wird aktion vom Hauptthread gestartet
-
             statusStrip.Invoke(new SetStatusDelegate(SetStatus), new object[] { e.text });
         }
 
@@ -443,6 +461,41 @@ namespace streams.cs
                 renderStreams.StreamType = selected_stream;
             }
         }
-    }
 
+        private void checkBox2_CheckedChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        /*
+         * Hands Rcognition Stuff
+        */
+        private delegate void UpdateInfoDelegate(string status, Color color);
+        public void UpdateInfo(string status, Color color)
+        {
+            messageBox.Invoke(new UpdateInfoDelegate(delegate (string s, Color c)
+            {
+                if (status == String.Empty)
+                {
+                    messageBox.Text = String.Empty;
+                    return;
+                }
+
+                if (messageBox.TextLength > 1200)
+                {
+                    messageBox.Text = String.Empty;
+                }
+
+                messageBox.SelectionColor = c;
+
+                messageBox.SelectedText = s;
+                messageBox.SelectionColor = messageBox.ForeColor;
+
+                messageBox.SelectionStart = messageBox.Text.Length;
+                messageBox.ScrollToCaret();
+
+            }), new object[] { status, color });
+        }
+
+    }
 }

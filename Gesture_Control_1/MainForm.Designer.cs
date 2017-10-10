@@ -43,10 +43,6 @@
             this.messageBox = new System.Windows.Forms.RichTextBox();
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
-            this.radioClick = new System.Windows.Forms.RadioButton();
-            this.radioOpen = new System.Windows.Forms.RadioButton();
-            this.radioButton3 = new System.Windows.Forms.RadioButton();
-            this.radioFist = new System.Windows.Forms.RadioButton();
             this.label1 = new System.Windows.Forms.Label();
             this.tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
             this.buttonStop = new System.Windows.Forms.Button();
@@ -57,6 +53,10 @@
             this.radioColor = new System.Windows.Forms.RadioButton();
             this.statusStrip = new System.Windows.Forms.StatusStrip();
             this.statusStripLabel = new System.Windows.Forms.ToolStripStatusLabel();
+            this.checkBox1 = new System.Windows.Forms.CheckBox();
+            this.checkBox2 = new System.Windows.Forms.CheckBox();
+            this.checkBox3 = new System.Windows.Forms.CheckBox();
+            this.checkBox4 = new System.Windows.Forms.CheckBox();
             this.menuStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.rgbImage)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.depthImage)).BeginInit();
@@ -148,10 +148,10 @@
             // 
             this.tableLayoutPanel1.ColumnCount = 1;
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel1.Controls.Add(this.radioClick, 0, 0);
-            this.tableLayoutPanel1.Controls.Add(this.radioOpen, 0, 1);
-            this.tableLayoutPanel1.Controls.Add(this.radioButton3, 0, 2);
-            this.tableLayoutPanel1.Controls.Add(this.radioFist, 0, 3);
+            this.tableLayoutPanel1.Controls.Add(this.checkBox4, 0, 3);
+            this.tableLayoutPanel1.Controls.Add(this.checkBox3, 0, 2);
+            this.tableLayoutPanel1.Controls.Add(this.checkBox2, 0, 1);
+            this.tableLayoutPanel1.Controls.Add(this.checkBox1, 0, 0);
             this.tableLayoutPanel1.Location = new System.Drawing.Point(665, 291);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
             this.tableLayoutPanel1.RowCount = 4;
@@ -162,50 +162,6 @@
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             this.tableLayoutPanel1.Size = new System.Drawing.Size(200, 100);
             this.tableLayoutPanel1.TabIndex = 6;
-            // 
-            // radioClick
-            // 
-            this.radioClick.AutoSize = true;
-            this.radioClick.Location = new System.Drawing.Point(3, 3);
-            this.radioClick.Name = "radioClick";
-            this.radioClick.Size = new System.Drawing.Size(48, 17);
-            this.radioClick.TabIndex = 0;
-            this.radioClick.TabStop = true;
-            this.radioClick.Text = "Click";
-            this.radioClick.UseVisualStyleBackColor = true;
-            // 
-            // radioOpen
-            // 
-            this.radioOpen.AutoSize = true;
-            this.radioOpen.Location = new System.Drawing.Point(3, 28);
-            this.radioOpen.Name = "radioOpen";
-            this.radioOpen.Size = new System.Drawing.Size(78, 17);
-            this.radioOpen.TabIndex = 1;
-            this.radioOpen.TabStop = true;
-            this.radioOpen.Text = "Hand open";
-            this.radioOpen.UseVisualStyleBackColor = true;
-            // 
-            // radioButton3
-            // 
-            this.radioButton3.AutoSize = true;
-            this.radioButton3.Location = new System.Drawing.Point(3, 53);
-            this.radioButton3.Name = "radioButton3";
-            this.radioButton3.Size = new System.Drawing.Size(85, 17);
-            this.radioButton3.TabIndex = 2;
-            this.radioButton3.TabStop = true;
-            this.radioButton3.Text = "Hand closed";
-            this.radioButton3.UseVisualStyleBackColor = true;
-            // 
-            // radioFist
-            // 
-            this.radioFist.AutoSize = true;
-            this.radioFist.Location = new System.Drawing.Point(3, 78);
-            this.radioFist.Name = "radioFist";
-            this.radioFist.Size = new System.Drawing.Size(41, 17);
-            this.radioFist.TabIndex = 3;
-            this.radioFist.TabStop = true;
-            this.radioFist.Text = "Fist";
-            this.radioFist.UseVisualStyleBackColor = true;
             // 
             // label1
             // 
@@ -319,6 +275,47 @@
             this.statusStripLabel.Text = "Ready";
             this.statusStripLabel.Click += new System.EventHandler(this.toolStripStatusLabel1_Click);
             // 
+            // checkBox1
+            // 
+            this.checkBox1.AutoSize = true;
+            this.checkBox1.Location = new System.Drawing.Point(3, 3);
+            this.checkBox1.Name = "checkBox1";
+            this.checkBox1.Size = new System.Drawing.Size(49, 17);
+            this.checkBox1.TabIndex = 12;
+            this.checkBox1.Text = "Click";
+            this.checkBox1.UseVisualStyleBackColor = true;
+            // 
+            // checkBox2
+            // 
+            this.checkBox2.AutoSize = true;
+            this.checkBox2.Location = new System.Drawing.Point(3, 28);
+            this.checkBox2.Name = "checkBox2";
+            this.checkBox2.Size = new System.Drawing.Size(79, 17);
+            this.checkBox2.TabIndex = 13;
+            this.checkBox2.Text = "Hand open";
+            this.checkBox2.UseVisualStyleBackColor = true;
+            this.checkBox2.CheckedChanged += new System.EventHandler(this.checkBox2_CheckedChanged);
+            // 
+            // checkBox3
+            // 
+            this.checkBox3.AutoSize = true;
+            this.checkBox3.Location = new System.Drawing.Point(3, 53);
+            this.checkBox3.Name = "checkBox3";
+            this.checkBox3.Size = new System.Drawing.Size(83, 17);
+            this.checkBox3.TabIndex = 14;
+            this.checkBox3.Text = "Hand close ";
+            this.checkBox3.UseVisualStyleBackColor = true;
+            // 
+            // checkBox4
+            // 
+            this.checkBox4.AutoSize = true;
+            this.checkBox4.Location = new System.Drawing.Point(3, 78);
+            this.checkBox4.Name = "checkBox4";
+            this.checkBox4.Size = new System.Drawing.Size(42, 17);
+            this.checkBox4.TabIndex = 15;
+            this.checkBox4.Text = "Fist";
+            this.checkBox4.UseVisualStyleBackColor = true;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -367,10 +364,6 @@
         private System.Windows.Forms.RichTextBox messageBox;
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
-        private System.Windows.Forms.RadioButton radioClick;
-        private System.Windows.Forms.RadioButton radioOpen;
-        private System.Windows.Forms.RadioButton radioButton3;
-        private System.Windows.Forms.RadioButton radioFist;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel2;
         private System.Windows.Forms.Button buttonStop;
@@ -381,5 +374,9 @@
         private System.Windows.Forms.RadioButton radioIR;
         private System.Windows.Forms.StatusStrip statusStrip;
         private System.Windows.Forms.ToolStripStatusLabel statusStripLabel;
+        private System.Windows.Forms.CheckBox checkBox1;
+        private System.Windows.Forms.CheckBox checkBox2;
+        private System.Windows.Forms.CheckBox checkBox4;
+        private System.Windows.Forms.CheckBox checkBox3;
     }
 }
