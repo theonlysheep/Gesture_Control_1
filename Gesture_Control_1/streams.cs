@@ -9,12 +9,11 @@ namespace streams.cs
 {
     class Streams
     {
+        // Ereignisdaklaration
         public event EventHandler<UpdateStatusEventArgs> UpdateStatus = null;
         public event EventHandler<RenderFrameEventArgs> RenderFrame = null;
 
         
-        public bool Stop { get; set; }
-
         private Manager manager;
 
         public  RS.StreamProfileSet StreamProfileSet { get; set; }
@@ -27,7 +26,7 @@ namespace streams.cs
             manager = mngr;
             manager.DeviceInfo = null;
             StreamProfileSet = null;            
-            Stop = false;
+            manager.Stop = false;
             StreamType = RS.StreamType.STREAM_TYPE_ANY;
             Synced = true;
         }
@@ -46,15 +45,6 @@ namespace streams.cs
             try
             {
                 bool sts = true;
-                
-                
-
-                if (manager.SenseManager == null)
-                {
-                    SetStatus("Failed to create an SDK pipeline object");
-                    return;
-                }
-                
                 
                 /* Set Color & Depth Resolution and enable streams */
                 if (StreamProfileSet != null)
@@ -93,7 +83,7 @@ namespace streams.cs
                     manager.SenseManager.CaptureManager.Device.ResetProperties(RS.StreamType.STREAM_TYPE_ANY);
 
                     SetStatus("Streaming");
-                    while (!Stop)
+                    while (!manager.Stop)
                     {
                         /* Wait until a frame is ready: Synchronized or Asynchronous */
                         if (manager.SenseManager.AcquireFrame(Synced) < RS.Status.STATUS_NO_ERROR)

@@ -7,17 +7,17 @@ using RS = Intel.RealSense;
 
 namespace streams.cs
 {
-    class UpdateStatusEventArgs : EventArgs
+   public class UpdateStatusEventArgs : EventArgs
     {
         public String text { get; set; }
-
+        
         public UpdateStatusEventArgs(String text)
         {
             this.text = text;
         }
     }
 
-    class RenderFrameEventArgs : EventArgs
+    public class RenderFrameEventArgs : EventArgs
     {
         public int index { get; set; }
         public RS.Image image { get; set; }

@@ -30,6 +30,7 @@ namespace streams.cs
                 {
                     Application.Run(new MainForm(manager));
                     manager.Session.Dispose();
+                    manager.SenseManager.Close();
                     manager.SenseManager.Dispose();
                 }
             }

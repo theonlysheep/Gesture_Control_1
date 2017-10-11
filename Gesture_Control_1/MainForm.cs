@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using RS = Intel.RealSense;
 using SampleDX; // Redering for bitmap
+using Intel.RealSense.HandCursor;
 
 
 
@@ -26,20 +27,26 @@ namespace streams.cs
         // Layout 
         private ToolStripMenuItem[] streamMenus = new ToolStripMenuItem[RS.Capture.STREAM_LIMIT];
         private RadioButton[] streamButtons = new RadioButton[RS.Capture.STREAM_LIMIT];
-        private Dictionary<ToolStripMenuItem, RS.DeviceInfo> devices = new Dictionary<ToolStripMenuItem, RS.DeviceInfo>();
+        public Dictionary<ToolStripMenuItem, RS.DeviceInfo> devices = new Dictionary<ToolStripMenuItem, RS.DeviceInfo>();
         private Dictionary<ToolStripMenuItem, RS.StreamProfile> profiles = new Dictionary<ToolStripMenuItem, RS.StreamProfile>();
         private Dictionary<ToolStripMenuItem, int> devices_iuid = new Dictionary<ToolStripMenuItem, int>();
         private ToolStripMenuItem[] streamString = new ToolStripMenuItem[RS.Capture.STREAM_LIMIT];
 
         // Rendering
         private D2D1Render[] renders = new D2D1Render[2] { new D2D1Render(), new D2D1Render() }; // reder for .NET PictureBox
-        private Streams renderStreams;
+        private Streams streams;
+
+        // Hands Recognition
+        private Bitmap resultBitmap = null;
+        private float penSize = 3.0f;
+
+
 
         public MainForm(Manager mngr)
         {
             manager = mngr;
             InitializeComponent();
-            renderStreams = new Streams(manager);
+            streams = new Streams(manager);
 
             this.session = manager.Session;
 
@@ -54,8 +61,8 @@ namespace streams.cs
             streamButtons[RS.Capture.StreamTypeToIndex(RS.StreamType.STREAM_TYPE_IR)] = radioIR;
 
             // register event handler 
-            renderStreams.UpdateStatus += new EventHandler<UpdateStatusEventArgs>(UpdateStatusHandler);
-            renderStreams.RenderFrame += new EventHandler<RenderFrameEventArgs>(RenderFrameHandler);
+            streams.UpdateStatus += new EventHandler<UpdateStatusEventArgs>(UpdateStatus);
+            streams.RenderFrame += new EventHandler<RenderFrameEventArgs>(RenderFrame);
             FormClosing += new FormClosingEventHandler(FormClosingHandler);
             rgbImage.Paint += new PaintEventHandler(PaintHandler);
 
@@ -240,12 +247,12 @@ namespace streams.cs
             buttonStart.Enabled = false;
             buttonStop.Enabled = true;
 
-            renderStreams.StreamProfileSet = GetStreamSetConfiguration();
+            streams.StreamProfileSet = GetStreamSetConfiguration();
             manager.DeviceInfo = GetCheckedDevice();
-            renderStreams.StreamType = GetSelectedStream();
+            streams.StreamType = GetSelectedStream();
             
             // ev. verschieben 
-            renderStreams.Stop = false;
+            manager.Stop = false;
 
             // Thread for Streaming 
             System.Threading.Thread thread1 = new System.Threading.Thread(DoStreaming);
@@ -264,7 +271,7 @@ namespace streams.cs
         delegate void DoStreamingEnd();
         private void DoStreaming()
         {
-            renderStreams.StreamColorDepth();
+            streams.StreamColorDepth();
             Invoke(new DoStreamingEnd(
                 delegate
                 {
@@ -314,7 +321,7 @@ namespace streams.cs
             return streamingProfile;
         }
 
-        private RS.DeviceInfo GetCheckedDevice()
+        public RS.DeviceInfo GetCheckedDevice()
         {
             foreach (ToolStripMenuItem e in deviceMenu.DropDownItems)
             {
@@ -332,7 +339,7 @@ namespace streams.cs
         }
 
         // Eventhandler Methods
-        private void RenderFrameHandler(Object sender, RenderFrameEventArgs e)
+        private void RenderFrame(Object sender, RenderFrameEventArgs e)
         {
             if (e.image == null) return;
             renders[e.index].UpdatePanel(e.image);
@@ -352,7 +359,7 @@ namespace streams.cs
 
         private void FormClosingHandler(object sender, FormClosingEventArgs e)
         {
-            renderStreams.Stop = true;
+            manager.Stop = true;
             e.Cancel = buttonStop.Enabled;
             closing = true;
         }
@@ -363,7 +370,7 @@ namespace streams.cs
         }
 
         private delegate void SetStatusDelegate(String status);
-        private void UpdateStatusHandler(Object sender, UpdateStatusEventArgs e)
+        private void UpdateStatus(Object sender, UpdateStatusEventArgs e)
         {
             // Elemente im Hauptfenster müssen über MainThread bearbeitet werden 
             // Über Invoke, wird aktion vom Hauptthread gestartet
@@ -399,7 +406,7 @@ namespace streams.cs
 
         private void ResetStreamTypes()
         {
-            renderStreams.StreamType = RS.StreamType.STREAM_TYPE_ANY;
+            streams.StreamType = RS.StreamType.STREAM_TYPE_ANY;
         }
 
         // Check if Radio Buttons and Menu Selection fit 
@@ -422,7 +429,7 @@ namespace streams.cs
             {
                 RS.StreamType st = GetUnselectedStream();
                 streamButtons[RS.Capture.StreamTypeToIndex(st)].Checked = true;
-                renderStreams.StreamType = st;
+                streams.StreamType = st;
             }
         
         }
@@ -449,16 +456,16 @@ namespace streams.cs
 
         private void buttonStop_Click(object sender, EventArgs e)
         {
-            renderStreams.Stop = true;
+            manager.Stop = true;
         }
 
         private void Stream_Click(object sender, EventArgs e)
         {
             RS.StreamType selected_stream = GetSelectedStream();
-            if (selected_stream != renderStreams.StreamType)
+            if (selected_stream != streams.StreamType)
             {
 
-                renderStreams.StreamType = selected_stream;
+                streams.StreamType = selected_stream;
             }
         }
 
@@ -470,10 +477,12 @@ namespace streams.cs
         /*
          * Hands Rcognition Stuff
         */
-        private delegate void UpdateInfoDelegate(string status, Color color);
+
+        // Update Message Box with recognized Gestures 
+        private delegate void UpdateInfoEventHandler(string status, Color color);
         public void UpdateInfo(string status, Color color)
         {
-            messageBox.Invoke(new UpdateInfoDelegate(delegate (string s, Color c)
+            messageBox.Invoke(new UpdateInfoEventHandler(delegate (string s, Color c)
             {
                 if (status == String.Empty)
                 {
@@ -495,6 +504,66 @@ namespace streams.cs
                 messageBox.ScrollToCaret();
 
             }), new object[] { status, color });
+        }
+
+        public void DisplayBitmap(Bitmap picture)
+        {
+            lock (this)
+            {
+                if (resultBitmap != null)
+                    resultBitmap.Dispose();
+                resultBitmap = new Bitmap(picture);
+            }
+        }
+
+        public void DisplayCursor(int numOfHands, Queue<RS.Point3DF32>[] cursorPoints, Queue<RS.Point3DF32>[] adaptivePoints, int[] cursorClick, BodySideType[] handSideType)
+        {
+            if (resultBitmap == null) return;
+
+            int scaleFactor = 1;
+            Graphics g = Graphics.FromImage(resultBitmap);
+
+            Color color = Color.GreenYellow;
+            Pen pen = new Pen(color, penSize);
+
+            for (int i = 0; i < numOfHands; ++i)
+            {
+                float sz = 8;
+                int blueColor = (handSideType[i] == BodySideType.BODY_SIDE_LEFT)
+                    ? 200
+                    : (handSideType[i] == BodySideType.BODY_SIDE_RIGHT) ? 100 : 0;
+
+                /// draw cursor trail
+                
+                    for (int j = 0; j < cursorPoints[i].Count; j++)
+                    {
+                        float greenPart = (float)((Math.Max(Math.Min(cursorPoints[i].ElementAt(j).z / scaleFactor, 0.7), 0.2) - 0.2) / 0.5);
+
+                        pen.Color = Color.FromArgb(255, (int)(255 * (1 - greenPart)), (int)(255 * greenPart), blueColor);
+                        pen.Width = penSize;
+                        int x = (int)cursorPoints[i].ElementAt(j).x / scaleFactor;
+                        int y = (int)cursorPoints[i].ElementAt(j).y / scaleFactor;
+                        g.DrawEllipse(pen, x - sz / 2, y - sz / 2, sz, sz);
+                    }
+                
+
+                if (0 < cursorClick[i])
+                {
+                    color = Color.LightBlue;
+                    pen = new Pen(color, 10.0f);
+                    sz = 32;
+
+                    int x = 0, y = 0;
+                    if (cursorPoints[i].Count() > 0)
+                    {
+                        x = (int)cursorPoints[i].ElementAt(cursorPoints[i].Count - 1).x / scaleFactor;
+                        y = (int)cursorPoints[i].ElementAt(cursorPoints[i].Count - 1).y / scaleFactor;
+                    }
+                    
+                    g.DrawEllipse(pen, x - sz / 2, y - sz / 2, sz, sz);
+                }
+            }
+            pen.Dispose();
         }
 
     }

@@ -9,6 +9,10 @@ namespace streams.cs
 {
     class HandsRecognition
     {
+        // Ereignisdaklaration
+        public event EventHandler<UpdateStatusEventArgs> UpdateStatus = null;
+
+
         ImageInfo _info;
         private readonly MainForm _form;
         private bool _disconnected = false;
@@ -42,22 +46,31 @@ namespace streams.cs
             this._form = form;
         }
 
-       
+
 
         #region Events 
-        public void OnFiredAlert(Object sender, Intel.RealSense.HandCursor.CursorConfiguration.AlertEventArgs args)
+        private void SetStatus(String text)
+        {
+            EventHandler<UpdateStatusEventArgs> handler = UpdateStatus;
+            if (handler != null)
+            {
+                handler(this, new UpdateStatusEventArgs(text));
+            }
+        }
+
+        public void OnFiredAlert(Object sender, CursorConfiguration.AlertEventArgs args)
         {
             AlertData data = args.data;
             string sAlert = "Alert: ";
             _form.UpdateInfo("Frame " + data.frameNumber + ") " + sAlert + data.label.ToString() + "\n", System.Drawing.Color.RoyalBlue);
         }
 
-        public void OnFiredGesture(Object sender, Intel.RealSense.HandCursor.CursorConfiguration.GestureEventArgs args)
+        public void OnFiredGesture(Object sender, CursorConfiguration.GestureEventArgs args)
         {
             Intel.RealSense.HandCursor.GestureData data = args.data;
             string gestureStatusLeft = string.Empty;
             string gestureStatusRight = string.Empty;
-
+            
             ICursor cursor;
             if (cursorData.QueryCursorDataById(data.handId, out cursor) != Status.STATUS_NO_ERROR)
                 return;
@@ -84,6 +97,7 @@ namespace streams.cs
         }
 
         #endregion 
+
         /* Displaying Depth/Mask Images - for depth image only we use a delay of NumberOfFramesToDelay to sync image with tracking */
         private void DisplayCursorPicture(Image depth)
         {
@@ -119,26 +133,13 @@ namespace streams.cs
                     if (cursor != null)
                     {
                         // collect cursor points
-                        if (_form.GetCursorState())
-                        {
-                            Point3DF32 imagePoint = cursor.CursorPointImage;
 
-                            _mCursorPoints[i].Enqueue(imagePoint);
-                            if (_mCursorPoints[i].Count > 50)
-                                _mCursorPoints[i].Dequeue();
-                        }
+                        Point3DF32 imagePoint = cursor.CursorPointImage;
 
-                        // collect adaptive points
-                        if (_form.GetAdaptiveState())
-                        {
-                            Point3DF32 adaptivePoint = cursor.AdaptivePoint;
-                            adaptivePoint.x *= 640;
-                            adaptivePoint.y = adaptivePoint.y * 480;
+                        _mCursorPoints[i].Enqueue(imagePoint);
+                        if (_mCursorPoints[i].Count > 50)
+                            _mCursorPoints[i].Dequeue();
 
-                            _mAdaptivePoints[i].Enqueue(adaptivePoint);
-                            if (_mAdaptivePoints[i].Count > 50)
-                                _mAdaptivePoints[i].Dequeue();
-                        }
                         _mCursorHandSide[i] = cursor.BodySide;
                         GestureData gestureData;
                         if (cursorData.IsGestureFiredByHand(GestureType.CURSOR_CLICK, cursor.UniqueId, out gestureData))
@@ -165,113 +166,84 @@ namespace streams.cs
         }
 
         /* Using SenseManager to handle data */
-        public void SimplePipeline()
+        public void SimplePipeline(Manager mngr)
         {
+            Manager manager = mngr;
+
             _form.UpdateInfo(String.Empty, System.Drawing.Color.Black);
-            bool liveCamera = false;
 
+            //??????????
             bool flag = true;
-            SenseManager instance = null;
-            _disconnected = false;
-            instance = _form.session.CreateSenseManager();
-            if (instance == null)
-            {
-                _form.UpdateStatus("Failed creating SenseManager");
-                return;
-            }
 
-            CaptureManager captureManager = instance.CaptureManager;
-            DeviceInfo info = null;
+            SenseManager senseManager = null;
+            _disconnected = false;
+            senseManager = manager.SenseManager;
+
+            CaptureManager captureManager = senseManager.CaptureManager;
+           
             if (captureManager != null)
             {
-                if (_form.GetPlaybackState())
+                if (_form == null || _form.devices.Count == 0)
                 {
-                    captureManager.SetFileName(_form.GetFileName(), false);
-                    info = _form.GetDeviceFromFileMenu(_form.GetFileName());
+                    _form.UpdateStatus("No device were found");
+                    return;
                 }
-                else
+                
+                if (manager.DeviceInfo == null)
                 {
-                    if (_form == null || _form.Devices.Count == 0)
-                    {
-                        _form.UpdateStatus("No device were found");
-                        return;
-                    }
-
-                    _form.Devices.TryGetValue(_form.GetCheckedDevice(), out info);
-
-
-                    if (_form.GetRecordState())
-                    {
-                        captureManager.SetFileName(_form.GetFileName(), true);
-                        if (_form.Devices.TryGetValue(_form.GetCheckedDevice(), out info))
-                        {
-                            captureManager.FilterByDeviceInfo(_form.GetCheckedDeviceInfo());
-                        }
-
-                    }
-                    else
-                    {
-                        captureManager.FilterByDeviceInfo(_form.GetCheckedDeviceInfo());
-                        liveCamera = true;
-                    }
-                    if (info == null)
-                    {
-                        _form.UpdateStatus("Device Failure");
-                        return;
-                    }
+                    _form.UpdateStatus("Device Failure");
+                    return;
                 }
             }
 
-            if (info == null)
+            if (manager.DeviceInfo == null)
             {
                 _form.UpdateStatus("Device Failure");
                 return;
             }
 
-            if (info.model != DeviceModel.DEVICE_MODEL_SR300)
+            if (manager.DeviceInfo.model != DeviceModel.DEVICE_MODEL_SR300)
             {
-                _form.UpdateStatus(_form.GetPlaybackState()
-                    ? "Cursor mode is unsupported for chosen playback file"
-                    : "Cursor mode is unsupported for chosen device");
+                _form.UpdateStatus("Cursor mode is unsupported for chosen device");
                 return;
             }
 
             /* Set Module */
-            HandCursorModule handCursorAnalysis;
-            handCursorAnalysis = HandCursorModule.Activate(instance);
-            if (handCursorAnalysis == null)
+            HandCursorModule handCursorModule;
+            handCursorModule = HandCursorModule.Activate(senseManager);
+            if (handCursorModule == null)
             {
                 _form.UpdateStatus("Failed Loading Module");
                 return;
             }
 
             CursorConfiguration cursorConfiguration = null;
-            cursorConfiguration = handCursorAnalysis.CreateActiveConfiguration();
+            cursorConfiguration = handCursorModule.CreateActiveConfiguration();
             if (cursorConfiguration == null)
             {
                 _form.UpdateStatus("Failed Create Configuration");
-                instance.Close();
-                instance.Dispose();
+                senseManager.Close();
+                senseManager.Dispose();
                 return;
             }
 
-            cursorData = handCursorAnalysis.CreateOutput();
+            cursorData = handCursorModule.CreateOutput();
             if (cursorData == null)
             {
                 _form.UpdateStatus("Failed Create Output");
-                instance.Close();
-                instance.Dispose();
+                senseManager.Close();
+                senseManager.Dispose();
                 return;
             }
 
-            FPSTimer timer = new FPSTimer(_form);
+            
             _form.UpdateStatus("Init Started");
-            if (instance.Init() == Status.STATUS_NO_ERROR)
+            if (senseManager.Init() == Status.STATUS_NO_ERROR)
             {
 
                 DeviceInfo dinfo;
                 DeviceModel dModel = DeviceModel.DEVICE_MODEL_F200;
-                Device device = instance.CaptureManager.Device;
+                Device device = senseManager.CaptureManager.Device;
                 if (device != null)
                 {
                     device.QueryDeviceInfo(out dinfo);
@@ -286,20 +258,12 @@ namespace streams.cs
                     cursorConfiguration.ApplyChanges();
                 }
 
-                _form.resetGesturesList();
-                this._form.UpdateGesturesToList("", 0);
-                this._form.UpdateGesturesToList("cursor_click", 1);
-                this._form.UpdateGesturesToList("cursor_clockwise_circle", 2);
-                this._form.UpdateGesturesToList("cursor_counterclockwise_circle", 3);
-                this._form.UpdateGesturesToList("cursor_hand_opening", 4);
-                this._form.UpdateGesturesToList("cursor_hand_closing", 5);
-                _form.UpdateGesturesListSize();
+                
 
-                _form.UpdateStatus("Streaming");
-                int frameCounter = 0;
+                _form.UpdateStatus("Streaming");         
                 int frameNumber = 0;
 
-                while (!_form.stop)
+                while (!manager.Stop)
                 {
                     if (cursorConfiguration != null)
                     {
@@ -352,21 +316,21 @@ namespace streams.cs
                     }
 
 
-                    if (instance.AcquireFrame(true) < Status.STATUS_NO_ERROR)
+                    if (senseManager.AcquireFrame(true) < Status.STATUS_NO_ERROR)
                     {
                         break;
                     }
 
-                    frameCounter++;
+                    frameNumber++;
 
-                    if (!DisplayDeviceConnection(!instance.IsConnected()))
+                    if (!DisplayDeviceConnection(!senseManager.IsConnected()))
                     {
                         Sample sample = null;
-                        sample = instance.Sample;
+                        sample = senseManager.Sample;
 
                         if (sample != null && sample.Depth != null)
                         {
-                            frameNumber = liveCamera ? frameCounter : instance.CaptureManager.FrameIndex;
+                            
 
                             if (cursorData != null)
                             {
@@ -378,7 +342,7 @@ namespace streams.cs
                         }
                         timer.Tick();
                     }
-                    instance.ReleaseFrame();
+                    senseManager.ReleaseFrame();
                 }
             }
             else
@@ -394,13 +358,10 @@ namespace streams.cs
             // Clean Up
             if (cursorData != null) cursorData.Dispose();
             if (cursorConfiguration != null) cursorConfiguration.Dispose();
-
-            instance.Close();
-            instance.Dispose();
-
+            
             if (flag)
             {
-                _form.UpdateStatus("Stopped");
+                UpdateStatusHandler("Stopped");
             }
         }
     }

@@ -15,6 +15,11 @@ namespace streams.cs
         public RS.SenseManager SenseManager { get; set; }
         public RS.DeviceInfo DeviceInfo { get; set; }
 
+        public bool Stop { get; set; }
+
+        /*
+         * Manage Session and SenseManager in central class
+        */
         public void CreateSession()
         {
             try
@@ -73,6 +78,9 @@ namespace streams.cs
             }
         }
 
+        /*
+         * Mange Devices in central class
+         */
         public void HandleDevices()
         {
             /* Optional: Set Input Source */
