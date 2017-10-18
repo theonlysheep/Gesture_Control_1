@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using RS = Intel.RealSense;
 using System.Windows.Forms;
+using Intel.RealSense.HandCursor;
 
 namespace streams.cs
 {
@@ -14,9 +15,15 @@ namespace streams.cs
         public RS.Session Session { get; set; }
         public RS.SenseManager SenseManager { get; set; }
         public RS.DeviceInfo DeviceInfo { get; set; }
+        public Timer timer;
+
 
         public bool Stop { get; set; }
 
+        public event EventHandler<UpdateStatusEventArgs> UpdateStatus = null;
+
+        public CursorData cursorData = null;
+        
         /*
          * Manage Session and SenseManager in central class
         */
@@ -78,17 +85,92 @@ namespace streams.cs
             }
         }
 
-        /*
-         * Mange Devices in central class
-         */
-        public void HandleDevices()
+        //public void SearchDevices()
+        //{
+        //    /* Save all input sources into DeviceInfo */
+        //    if (DeviceInfo != null)
+        //        SenseManager.CaptureManager.FilterByDeviceInfo(DeviceInfo);
+        //}
+
+        public void CreateTimer()
         {
-            /* Optional: Set Input Source */
-            if (DeviceInfo != null)
-                SenseManager.CaptureManager.FilterByDeviceInfo(DeviceInfo);
+            /* Timer Initialization */
+            timer = new Timer();
+
         }
 
 
+        //public void ShowPerformanceTick()
+        //{
+        //    /* Optional: Show performance tick */
 
+        //    if (image != null)
+        //    {
+        //        timer.Tick(RS.ImageExtension.PixelFormatToString(image.Info.format) + " " + image.Info.width + "x" + image.Info.height);
+        //    }
+        //}
+
+
+        //public void CheckDevices()
+        //{
+        //    if (SenseManager.CaptureManager != null)
+        //    {
+        //        if (devices.Count == 0)
+        //        {
+        //            SetStatus("No device were found");
+        //            return;
+        //        }
+
+        //        if (DeviceInfo == null)
+        //        {
+        //            SetStatus("Device Failure");
+        //            return;
+        //        }
+        //    }
+
+        //    if (DeviceInfo == null)
+        //    {
+        //        SetStatus("Device Failure");
+        //        return;
+        //    }
+
+        //    if (DeviceInfo.model != RS.DeviceModel.DEVICE_MODEL_SR300)
+        //    {
+        //        SetStatus("Cursor mode is unsupported for chosen device");
+        //        return;
+        //    }
+        //}
+
+        public void InitSenseManager()
+        {
+            if (SenseManager.Init() == RS.Status.STATUS_NO_ERROR) SetStatus("SenseManager Init Started");
+            else
+            {
+                SetStatus("SenseManager Init Failed");
+                Stop = true;
+            }
+        }
+
+        public void SetStatus(String text)
+        {
+            EventHandler<UpdateStatusEventArgs> handler = UpdateStatus;
+            if (handler != null)
+            {
+                handler(this, new UpdateStatusEventArgs(text));
+            }
+        }
+
+        public RS.Sample GetSample()
+        {
+            RS.Sample sample = null;
+            /* Wait until a frame is ready: Synchronized or Asynchronous */
+            if (SenseManager.AcquireFrame(false) == RS.Status.STATUS_NO_ERROR)
+            {
+                /* Aquire Frame from Camera */
+                sample = SenseManager.Sample;
+                return sample;
+            }
+            else return sample = null;
+        }
     }
 }

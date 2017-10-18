@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 namespace streams.cs
 {
-    class Timer
+    public class Timer
     {
         [DllImport("Kernel32.dll")]
         private static extern bool QueryPerformanceCounter(out long data);

@@ -18,14 +18,15 @@ namespace streams.cs
     public partial class MainForm : Form
     {
         //Global Var
-        private RS.Session session;
         private Manager manager;
+        private Streams streams;
+        private HandsRecognition handsRecognition;
 
         private volatile bool closing = false;
         private int current_device_iuid = 0;
 
         // Layout 
-        private ToolStripMenuItem[] streamMenus = new ToolStripMenuItem[RS.Capture.STREAM_LIMIT];
+        private ToolStripMenuItem[] streamMenue = new ToolStripMenuItem[RS.Capture.STREAM_LIMIT];
         private RadioButton[] streamButtons = new RadioButton[RS.Capture.STREAM_LIMIT];
         public Dictionary<ToolStripMenuItem, RS.DeviceInfo> devices = new Dictionary<ToolStripMenuItem, RS.DeviceInfo>();
         private Dictionary<ToolStripMenuItem, RS.StreamProfile> profiles = new Dictionary<ToolStripMenuItem, RS.StreamProfile>();
@@ -34,53 +35,59 @@ namespace streams.cs
 
         // Rendering
         private D2D1Render[] renders = new D2D1Render[2] { new D2D1Render(), new D2D1Render() }; // reder for .NET PictureBox
-        private Streams streams;
 
-        // Hands Recognition
+        // Drawing Parameters 
         private Bitmap resultBitmap = null;
         private float penSize = 3.0f;
 
-
-
+        // 
         public MainForm(Manager mngr)
         {
-            manager = mngr;
             InitializeComponent();
+            manager = mngr;
             streams = new Streams(manager);
+            handsRecognition = new HandsRecognition(manager, this);
 
-            this.session = manager.Session;
 
             /* Put stream menu items to array */
-            streamMenus[RS.Capture.StreamTypeToIndex(RS.StreamType.STREAM_TYPE_COLOR)] = colorMenu;
-            streamMenus[RS.Capture.StreamTypeToIndex(RS.StreamType.STREAM_TYPE_DEPTH)] = depthMenu;
-            streamMenus[RS.Capture.StreamTypeToIndex(RS.StreamType.STREAM_TYPE_IR)] = irMenu;
-           
+            streamMenue[RS.Capture.StreamTypeToIndex(RS.StreamType.STREAM_TYPE_COLOR)] = colorMenu;
+            streamMenue[RS.Capture.StreamTypeToIndex(RS.StreamType.STREAM_TYPE_DEPTH)] = depthMenu;
+            streamMenue[RS.Capture.StreamTypeToIndex(RS.StreamType.STREAM_TYPE_IR)] = irMenu;
+
             /* Put stream buttons to array */
             streamButtons[RS.Capture.StreamTypeToIndex(RS.StreamType.STREAM_TYPE_COLOR)] = radioColor;
             streamButtons[RS.Capture.StreamTypeToIndex(RS.StreamType.STREAM_TYPE_DEPTH)] = radioDepth;
             streamButtons[RS.Capture.StreamTypeToIndex(RS.StreamType.STREAM_TYPE_IR)] = radioIR;
 
             // register event handler 
-            streams.UpdateStatus += new EventHandler<UpdateStatusEventArgs>(UpdateStatus);
+            manager.UpdateStatus += new EventHandler<UpdateStatusEventArgs>(UpdateStatus);
             streams.RenderFrame += new EventHandler<RenderFrameEventArgs>(RenderFrame);
             FormClosing += new FormClosingEventHandler(FormClosingHandler);
             rgbImage.Paint += new PaintEventHandler(PaintHandler);
 
-            rgbImage.Resize += new EventHandler(ResizeHandler);
-            depthImage.Resize += new EventHandler(ResizeHandler);
-            resultImage.Resize += new EventHandler(ResizeHandler);
 
-            ResetStreamTypes();
+            rgbImage.Resize += new EventHandler(ResizeHandler);
+            //depthImage.Resize += new EventHandler(ResizeHandler);
+            //resultImage.Resize += new EventHandler(ResizeHandler);
 
             // Fill drop down Menues 
+            ResetStreamTypes();
             PopulateDeviceMenu();
             foreach (RadioButton button in streamButtons)
                 if (button != null) button.Click += new EventHandler(Stream_Click);
 
+            // Set up Renders für WindowsForms compability
             renders[0].SetHWND(rgbImage);
+            //renders[1].SetHWND(depthImage);
 
+            // Initialise Intel Realsense Components
+            manager.CreateSession();
+            manager.CreateSenseManager();
+            //manager.SearchDevices();
+            manager.CreateTimer();
         }
 
+        // Get entries for Device Menue 
         private void PopulateDeviceMenu()
         {
             devices.Clear();
@@ -94,11 +101,12 @@ namespace streams.cs
 
             for (int i = 0; ; i++)
             {
-                RS.ImplDesc desc1 = session.QueryImpl(desc, i);
+
+                RS.ImplDesc desc1 = manager.Session.QueryImpl(desc, i);
                 if (desc1 == null)
                     break;
                 RS.Capture capture;
-                if (session.CreateImpl<RS.Capture>(desc1, out capture) < RS.Status.STATUS_NO_ERROR) continue;
+                if (manager.Session.CreateImpl<RS.Capture>(desc1, out capture) < RS.Status.STATUS_NO_ERROR) continue;
                 for (int j = 0; ; j++)
                 {
                     RS.DeviceInfo dinfo;
@@ -121,15 +129,16 @@ namespace streams.cs
                 buttonStart.Enabled = false;
                 for (int s = 0; s < RS.Capture.STREAM_LIMIT; s++)
                 {
-                    if (streamMenus[s] != null)
+                    if (streamMenue[s] != null)
                     {
-                        streamMenus[s].Visible = false;
+                        streamMenue[s].Visible = false;
                         streamButtons[s].Visible = false;
                     }
                 }
             }
         }
 
+        // Get entries for color Streams 
         private void PopulateColorDepthMenus(ToolStripMenuItem device_item)
         {
             RS.ImplDesc desc = new RS.ImplDesc();
@@ -140,7 +149,7 @@ namespace streams.cs
             desc.cuids[0] = RS.Capture.CUID;
 
             profiles.Clear();
-            foreach (ToolStripMenuItem menu in streamMenus)
+            foreach (ToolStripMenuItem menu in streamMenue)
             {
                 if (menu != null)
                     menu.DropDownItems.Clear();
@@ -148,7 +157,7 @@ namespace streams.cs
 
             RS.Capture capture;
             RS.DeviceInfo dinfo2 = GetCheckedDevice();
-            if (session.CreateImpl<RS.Capture>(desc, out capture) >= RS.Status.STATUS_NO_ERROR)
+            if (manager.Session.CreateImpl<RS.Capture>(desc, out capture) >= RS.Status.STATUS_NO_ERROR)
             {
                 RS.Device device = capture.CreateDevice(dinfo2.didx);
                 if (device != null)
@@ -158,9 +167,9 @@ namespace streams.cs
                     for (int s = 0; s < RS.Capture.STREAM_LIMIT; s++)
                     {
                         RS.StreamType streamType = RS.Capture.StreamTypeFromIndex(s);
-                        if (((int)dinfo2.streams & (int)streamType) != 0 && streamMenus[s] != null)
+                        if (((int)dinfo2.streams & (int)streamType) != 0 && streamMenue[s] != null)
                         {
-                            streamMenus[s].Visible = true;
+                            streamMenue[s].Visible = true;
                             streamButtons[s].Visible = true;
                             int num = device.QueryStreamProfileSetNum(streamType);
                             for (int p = 0; p < num; p++)
@@ -169,12 +178,12 @@ namespace streams.cs
                                 RS.StreamProfile streamProfile = streamProfileSet[streamType];
                                 ToolStripMenuItem sm1 = new ToolStripMenuItem(ProfileToString(streamProfile), null, new EventHandler(Stream_Item_Click));
                                 profiles[sm1] = streamProfile;
-                                streamMenus[s].DropDownItems.Add(sm1);
+                                streamMenue[s].DropDownItems.Add(sm1);
                             }
                         }
-                        else if (((int)dinfo2.streams & (int)streamType) == 0 && streamMenus[s] != null)
+                        else if (((int)dinfo2.streams & (int)streamType) == 0 && streamMenue[s] != null)
                         {
-                            streamMenus[s].Visible = false;
+                            streamMenue[s].Visible = false;
                             streamButtons[s].Visible = false;
                         }
                     }
@@ -185,7 +194,7 @@ namespace streams.cs
             }
             for (int i = 0; i < RS.Capture.STREAM_LIMIT; i++)
             {
-                ToolStripMenuItem menu = streamMenus[i];
+                ToolStripMenuItem menu = streamMenue[i];
                 if (menu != null)
                 {
                     streamString[i] = new ToolStripMenuItem("None", null, new EventHandler(Stream_Item_Click));
@@ -241,58 +250,78 @@ namespace streams.cs
             }
         }
 
+        // Start of Program 
         private void buttonStart_Click(object sender, EventArgs e)
         {
+            // Configure UI
             menuStrip.Enabled = false;
             buttonStart.Enabled = false;
             buttonStop.Enabled = true;
+            ActivateGestureCheckboxes(false);
 
-            streams.StreamProfileSet = GetStreamSetConfiguration();
-            manager.DeviceInfo = GetCheckedDevice();
-            streams.StreamType = GetSelectedStream();
-            
-            // ev. verschieben 
+            // Reset all components
+            manager.DeviceInfo = null;
             manager.Stop = false;
 
+            manager.DeviceInfo = GetCheckedDevice();
+
+            streams.StreamProfileSet = GetStreamSetConfiguration();
+            streams.EnableStreamsFromSelection();
+            streams.StreamType = GetSelectedStream();
+            
+            handsRecognition.ActivatedGestures = GetSelectedGestures();
+            handsRecognition.SetUpHandCursorModule();
+            handsRecognition.RegisterHandEvents();           
+            handsRecognition.EnableGesturesFromSelection();
+
+            manager.InitSenseManager();
+
+            //???????????????????
+            //manager.SenseManager.CaptureManager.Device.ResetProperties(RS.StreamType.STREAM_TYPE_ANY);
+
             // Thread for Streaming 
-            System.Threading.Thread thread1 = new System.Threading.Thread(DoStreaming);
+            System.Threading.Thread thread1 = new System.Threading.Thread(DoWork);
             thread1.Start();
             System.Threading.Thread.Sleep(5);
-
-            /*
-            // Thread for Hand Recognition 
-            System.Threading.Thread thread2 = new System.Threading.Thread(DoHandsRecognition);
-            thread2.Start();
-            System.Threading.Thread.Sleep(5);
-            */
         }
-        
-        //?????????????????????????????????????????????
-        delegate void DoStreamingEnd();
-        private void DoStreaming()
+
+        // Worker for threads 
+        delegate void DoWorkEnd();
+        private void DoWork()
         {
-            streams.StreamColorDepth();
-            Invoke(new DoStreamingEnd(
+            try
+            {
+                while (!manager.Stop)
+                {
+                    RS.Sample sample = manager.GetSample();
+                    //frameNumber++; //todo
+                    streams.RenderStreams(sample);
+                    //manager.ShowPerformanceTick();
+                    handsRecognition.RecogniseHands(sample); //Todo
+                    manager.SenseManager.ReleaseFrame();
+                }
+
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(null, e.ToString(), "Error while Recognition", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
+            Invoke(new DoWorkEnd(
                 delegate
                 {
                     buttonStart.Enabled = true;
                     buttonStop.Enabled = false;
                     menuStrip.Enabled = true;
+                    ActivateGestureCheckboxes(true);
+                    manager.SenseManager.Close();
                     if (closing) Close();
                 }
             ));
         }
-        /*
-        private void DoHandsRecognition()
-        {
-            HandsRecognition handsRecognition = new HandsRecognition(this);
-            handsRecognition.SimplePipeline();            
-        }
-        */
-
 
         // The StreamProfile structure describes the video stream configuration parameters.
-        private RS.StreamProfile GetConfiguration(ToolStripMenuItem m)
+        private RS.StreamProfile GetStreamProfileConfiguration(ToolStripMenuItem m)
         {
             foreach (ToolStripMenuItem e in m.DropDownItems)
                 if (e.Checked) return profiles[e];
@@ -301,9 +330,9 @@ namespace streams.cs
 
         private RS.StreamProfile GetStreamConfiguration(RS.StreamType st)
         {
-            ToolStripMenuItem menu = streamMenus[RS.Capture.StreamTypeToIndex(st)];
+            ToolStripMenuItem menu = streamMenue[RS.Capture.StreamTypeToIndex(st)];
             if (menu != null)
-                return GetConfiguration(menu);
+                return GetStreamProfileConfiguration(menu);
             else
                 return new RS.StreamProfile();
         }
@@ -382,7 +411,6 @@ namespace streams.cs
 
         }
 
-
         private void Device_Item_Click(object sender, EventArgs e)
         {
             foreach (ToolStripMenuItem e1 in deviceMenu.DropDownItems)
@@ -390,9 +418,14 @@ namespace streams.cs
             PopulateColorDepthMenus(sender as ToolStripMenuItem);
         }
 
+        private void ResetStreamTypes()
+        {
+            streams.StreamType = RS.StreamType.STREAM_TYPE_ANY;
+        }
+
         private void Stream_Item_Click(object sender, EventArgs e)
         {
-            foreach (ToolStripMenuItem menu in streamMenus)
+            foreach (ToolStripMenuItem menu in streamMenue)
             {
                 if (menu != null && menu.DropDownItems.Contains(sender as ToolStripMenuItem))
                 {
@@ -402,11 +435,6 @@ namespace streams.cs
             }
             ResetStreamTypes();
             CheckSelection();
-        }
-
-        private void ResetStreamTypes()
-        {
-            streams.StreamType = RS.StreamType.STREAM_TYPE_ANY;
         }
 
         // Check if Radio Buttons and Menu Selection fit 
@@ -422,7 +450,7 @@ namespace streams.cs
                 }
             }
 
-           
+
 
             RS.StreamType selectedStream = GetSelectedStream();
             if (selectedStream != RS.StreamType.STREAM_TYPE_ANY && !streamButtons[RS.Capture.StreamTypeToIndex(selectedStream)].Enabled)
@@ -431,7 +459,7 @@ namespace streams.cs
                 streamButtons[RS.Capture.StreamTypeToIndex(st)].Checked = true;
                 streams.StreamType = st;
             }
-        
+
         }
 
         private RS.StreamType GetSelectedStream()
@@ -464,7 +492,6 @@ namespace streams.cs
             RS.StreamType selected_stream = GetSelectedStream();
             if (selected_stream != streams.StreamType)
             {
-
                 streams.StreamType = selected_stream;
             }
         }
@@ -479,10 +506,10 @@ namespace streams.cs
         */
 
         // Update Message Box with recognized Gestures 
-        private delegate void UpdateInfoEventHandler(string status, Color color);
-        public void UpdateInfo(string status, Color color)
+        private delegate void UpdateGestureInfoEventHandler(string status, Color color);
+        public void UpdateGestureInfo(string status, Color color)
         {
-            messageBox.Invoke(new UpdateInfoEventHandler(delegate (string s, Color c)
+            messageBox.Invoke(new UpdateGestureInfoEventHandler(delegate (string s, Color c)
             {
                 if (status == String.Empty)
                 {
@@ -516,7 +543,7 @@ namespace streams.cs
             }
         }
 
-        public void DisplayCursor(int numOfHands, Queue<RS.Point3DF32>[] cursorPoints, Queue<RS.Point3DF32>[] adaptivePoints, int[] cursorClick, BodySideType[] handSideType)
+        public void DisplayCursor(int numOfHands, Queue<RS.Point3DF32>[] cursorPoints, int[] cursorClick, BodySideType[] handSideType)
         {
             if (resultBitmap == null) return;
 
@@ -534,18 +561,18 @@ namespace streams.cs
                     : (handSideType[i] == BodySideType.BODY_SIDE_RIGHT) ? 100 : 0;
 
                 /// draw cursor trail
-                
-                    for (int j = 0; j < cursorPoints[i].Count; j++)
-                    {
-                        float greenPart = (float)((Math.Max(Math.Min(cursorPoints[i].ElementAt(j).z / scaleFactor, 0.7), 0.2) - 0.2) / 0.5);
 
-                        pen.Color = Color.FromArgb(255, (int)(255 * (1 - greenPart)), (int)(255 * greenPart), blueColor);
-                        pen.Width = penSize;
-                        int x = (int)cursorPoints[i].ElementAt(j).x / scaleFactor;
-                        int y = (int)cursorPoints[i].ElementAt(j).y / scaleFactor;
-                        g.DrawEllipse(pen, x - sz / 2, y - sz / 2, sz, sz);
-                    }
-                
+                for (int j = 0; j < cursorPoints[i].Count; j++)
+                {
+                    float greenPart = (float)((Math.Max(Math.Min(cursorPoints[i].ElementAt(j).z / scaleFactor, 0.7), 0.2) - 0.2) / 0.5);
+
+                    pen.Color = Color.FromArgb(255, (int)(255 * (1 - greenPart)), (int)(255 * greenPart), blueColor);
+                    pen.Width = penSize;
+                    int x = (int)cursorPoints[i].ElementAt(j).x / scaleFactor;
+                    int y = (int)cursorPoints[i].ElementAt(j).y / scaleFactor;
+                    g.DrawEllipse(pen, x - sz / 2, y - sz / 2, sz, sz);
+                }
+
 
                 if (0 < cursorClick[i])
                 {
@@ -559,11 +586,56 @@ namespace streams.cs
                         x = (int)cursorPoints[i].ElementAt(cursorPoints[i].Count - 1).x / scaleFactor;
                         y = (int)cursorPoints[i].ElementAt(cursorPoints[i].Count - 1).y / scaleFactor;
                     }
-                    
+
                     g.DrawEllipse(pen, x - sz / 2, y - sz / 2, sz, sz);
                 }
             }
             pen.Dispose();
+        }
+
+        //private delegate void UpdatePanelDelegate();
+        //public void UpdateMessageBox()
+        //{
+
+        //    messageBox.Invoke(new UpdatePanelDelegate(delegate ()
+        //    {
+        //        messageBox.Invalidate();
+        //    }));
+
+        //}
+
+        public List<string> GetSelectedGestures()
+        {
+            List<string> activatedGestures = new List<string>();
+
+            foreach (CheckBox checkBox in gestureCheckBoxTable.Controls)
+            {
+                if (checkBox.Checked)
+                {
+                    activatedGestures.Add(checkBox.Name);
+                }
+            }
+
+            return activatedGestures;
+        }
+
+        private void ActivateGestureCheckboxes(bool enabled)
+        {
+            click.Enabled = enabled;
+            handOpen.Enabled = enabled;
+            handClose.Enabled = enabled;
+            fist.Enabled = false; // Not Configured jet 
+        }
+
+        private delegate void UpdateResultImageDelegate();
+        public void UpdateResultImage()
+        {
+
+            resultImage.Invoke(new UpdateResultImageDelegate(delegate ()
+            {
+                resultImage.Invalidate();
+            }));
+
         }
 
     }
