@@ -69,7 +69,7 @@ namespace streams.cs
                 // ???????????????????????
                 image = sample[StreamType];
                 render(this, new RenderFrameEventArgs(0, image));
-                //render(this, new RenderFrameEventArgs(1, image));
+                render(this, new RenderFrameEventArgs(1, image));
             }
         }
         

@@ -55,7 +55,7 @@ namespace streams.cs
             streamMenue[RS.Capture.StreamTypeToIndex(RS.StreamType.STREAM_TYPE_IR)] = irMenu;
 
             /* Put stream buttons to array */
-            streamButtons[RS.Capture.StreamTypeToIndex(RS.StreamType.STREAM_TYPE_COLOR)] = radioColor;
+            //streamButtons[RS.Capture.StreamTypeToIndex(RS.StreamType.STREAM_TYPE_COLOR)] = radioColor;
             streamButtons[RS.Capture.StreamTypeToIndex(RS.StreamType.STREAM_TYPE_DEPTH)] = radioDepth;
             streamButtons[RS.Capture.StreamTypeToIndex(RS.StreamType.STREAM_TYPE_IR)] = radioIR;
 
@@ -63,12 +63,14 @@ namespace streams.cs
             manager.UpdateStatus += new EventHandler<UpdateStatusEventArgs>(UpdateStatus);
             streams.RenderFrame += new EventHandler<RenderFrameEventArgs>(RenderFrame);
             FormClosing += new FormClosingEventHandler(FormClosingHandler);
-            rgbImage.Paint += new PaintEventHandler(PaintHandler);
-            resultImage.Paint += new PaintEventHandler(Panel_Paint);
 
+            rgbImage.Paint += new PaintEventHandler(PaintHandler);
+            depthImage.Paint += new PaintEventHandler(PaintHandler);
+            resultImage.Paint += new PaintEventHandler(Panel_Paint);
+            
             rgbImage.Resize += new EventHandler(ResizeHandler);
-            //depthImage.Resize += new EventHandler(ResizeHandler);
-            //resultImage.Resize += new EventHandler(ResizeHandler);
+            depthImage.Resize += new EventHandler(ResizeHandler);
+            
 
             // Fill drop down Menues 
             ResetStreamTypes();
@@ -78,7 +80,7 @@ namespace streams.cs
 
             // Set up Renders für WindowsForms compability
             renders[0].SetHWND(rgbImage);
-            //renders[1].SetHWND(depthImage);
+            renders[1].SetHWND(depthImage);
 
             streams.StreamProfileSet = GetStreamSetConfiguration();
             streams.EnableStreamsFromSelection();
@@ -300,7 +302,7 @@ namespace streams.cs
                 while (!manager.Stop)
                 {
                     RS.Sample sample = manager.GetSample();
-                    //frameNumber++; //todo
+                    
                     streams.RenderStreams(sample);
                     //manager.ShowPerformanceTick();
                     handsRecognition.RecogniseHands(sample); //Todo
@@ -445,18 +447,14 @@ namespace streams.cs
 
         // Check if Radio Buttons and Menu Selection fit 
         private void CheckSelection()
-        {
-            int sumEnabled = 0;
+        {            
             for (int s = 0; s < RS.Capture.STREAM_LIMIT; s++)
             {
                 if (streamButtons[s] != null && streamString[s] != null)
                 {
-                    streamButtons[s].Enabled = !streamString[s].Checked;
-                    sumEnabled += streamButtons[s].Enabled ? 1 : 0;
+                    streamButtons[s].Enabled = !streamString[s].Checked;                   
                 }
             }
-
-
 
             RS.StreamType selectedStream = GetSelectedStream();
             if (selectedStream != RS.StreamType.STREAM_TYPE_ANY && !streamButtons[RS.Capture.StreamTypeToIndex(selectedStream)].Enabled)
