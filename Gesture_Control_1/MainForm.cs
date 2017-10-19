@@ -64,7 +64,7 @@ namespace streams.cs
             streams.RenderFrame += new EventHandler<RenderFrameEventArgs>(RenderFrame);
             FormClosing += new FormClosingEventHandler(FormClosingHandler);
             rgbImage.Paint += new PaintEventHandler(PaintHandler);
-
+            resultImage.Paint += new PaintEventHandler(Panel_Paint);
 
             rgbImage.Resize += new EventHandler(ResizeHandler);
             //depthImage.Resize += new EventHandler(ResizeHandler);
@@ -80,11 +80,17 @@ namespace streams.cs
             renders[0].SetHWND(rgbImage);
             //renders[1].SetHWND(depthImage);
 
+            streams.StreamProfileSet = GetStreamSetConfiguration();
+            streams.EnableStreamsFromSelection();
+            streams.StreamType = GetSelectedStream();
+
             // Initialise Intel Realsense Components
             manager.CreateSession();
             manager.CreateSenseManager();
             //manager.SearchDevices();
             manager.CreateTimer();
+
+           
         }
 
         // Get entries for Device Menue 
@@ -265,9 +271,9 @@ namespace streams.cs
 
             manager.DeviceInfo = GetCheckedDevice();
 
-            streams.StreamProfileSet = GetStreamSetConfiguration();
-            streams.EnableStreamsFromSelection();
-            streams.StreamType = GetSelectedStream();
+            //streams.StreamProfileSet = GetStreamSetConfiguration();
+            //streams.EnableStreamsFromSelection();
+            //streams.StreamType = GetSelectedStream();
             
             handsRecognition.ActivatedGestures = GetSelectedGestures();
             handsRecognition.SetUpHandCursorModule();
@@ -591,6 +597,35 @@ namespace streams.cs
                 }
             }
             pen.Dispose();
+        }
+
+        private void Panel_Paint(object sender, PaintEventArgs e)
+        {
+            lock (this)
+            {
+                if (resultBitmap == null || resultBitmap.Width == 0 || resultBitmap.Height == 0) return;
+                Bitmap bitmapNew = new Bitmap(resultBitmap);
+                try
+                {
+                    
+                        /* Keep the aspect ratio */
+                        Rectangle rc = (sender as PictureBox).ClientRectangle;
+                        float xscale = (float)rc.Width / (float)resultBitmap.Width;
+                        float yscale = (float)rc.Height / (float)resultBitmap.Height;
+                        float xyscale = (xscale < yscale) ? xscale : yscale;
+                        int width = (int)(resultBitmap.Width * xyscale);
+                        int height = (int)(resultBitmap.Height * xyscale);
+                        rc.X = (rc.Width - width) / 2;
+                        rc.Y = (rc.Height - height) / 2;
+                        rc.Width = width;
+                        rc.Height = height;
+                        e.Graphics.DrawImage(bitmapNew, rc);                   
+                }
+                finally
+                {
+                    bitmapNew.Dispose();
+                }
+            }
         }
 
         //private delegate void UpdatePanelDelegate();

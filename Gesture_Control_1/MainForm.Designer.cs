@@ -57,6 +57,7 @@
             this.radioColor = new System.Windows.Forms.RadioButton();
             this.statusStrip = new System.Windows.Forms.StatusStrip();
             this.statusStripLabel = new System.Windows.Forms.ToolStripStatusLabel();
+            this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this.menuStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.rgbImage)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.depthImage)).BeginInit();
@@ -65,6 +66,7 @@
             this.tableLayoutPanel2.SuspendLayout();
             this.tableLayoutPanel3.SuspendLayout();
             this.statusStrip.SuspendLayout();
+            this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
             // 
             // menuStrip
@@ -106,33 +108,44 @@
             // 
             // rgbImage
             // 
+            this.rgbImage.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.rgbImage.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
-            this.rgbImage.Location = new System.Drawing.Point(13, 28);
+            this.rgbImage.Location = new System.Drawing.Point(3, 3);
             this.rgbImage.Name = "rgbImage";
-            this.rgbImage.Size = new System.Drawing.Size(320, 240);
+            this.rgbImage.Size = new System.Drawing.Size(317, 235);
             this.rgbImage.TabIndex = 1;
             this.rgbImage.TabStop = false;
             // 
             // depthImage
             // 
+            this.depthImage.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.depthImage.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
-            this.depthImage.Location = new System.Drawing.Point(339, 28);
+            this.depthImage.Location = new System.Drawing.Point(326, 3);
             this.depthImage.Name = "depthImage";
-            this.depthImage.Size = new System.Drawing.Size(320, 240);
+            this.depthImage.Size = new System.Drawing.Size(317, 235);
             this.depthImage.TabIndex = 2;
             this.depthImage.TabStop = false;
             // 
             // resultImage
             // 
+            this.resultImage.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.resultImage.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
-            this.resultImage.Location = new System.Drawing.Point(668, 28);
+            this.resultImage.Location = new System.Drawing.Point(649, 3);
             this.resultImage.Name = "resultImage";
-            this.resultImage.Size = new System.Drawing.Size(320, 240);
+            this.resultImage.Size = new System.Drawing.Size(320, 235);
             this.resultImage.TabIndex = 3;
             this.resultImage.TabStop = false;
             // 
             // messageBox
             // 
+            this.messageBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.messageBox.Location = new System.Drawing.Point(13, 275);
             this.messageBox.Name = "messageBox";
             this.messageBox.Size = new System.Drawing.Size(646, 164);
@@ -146,6 +159,7 @@
             // 
             // gestureCheckBoxTable
             // 
+            this.gestureCheckBoxTable.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.gestureCheckBoxTable.ColumnCount = 1;
             this.gestureCheckBoxTable.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.gestureCheckBoxTable.Controls.Add(this.fist, 0, 3);
@@ -207,6 +221,7 @@
             // 
             // label1
             // 
+            this.label1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(665, 275);
             this.label1.Name = "label1";
@@ -216,6 +231,7 @@
             // 
             // tableLayoutPanel2
             // 
+            this.tableLayoutPanel2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.tableLayoutPanel2.ColumnCount = 1;
             this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
@@ -251,6 +267,7 @@
             // 
             // tableLayoutPanel3
             // 
+            this.tableLayoutPanel3.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.tableLayoutPanel3.ColumnCount = 1;
             this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel3.Controls.Add(this.radioDepth, 0, 2);
@@ -317,20 +334,37 @@
             this.statusStripLabel.Text = "Ready";
             this.statusStripLabel.Click += new System.EventHandler(this.toolStripStatusLabel1_Click);
             // 
+            // tableLayoutPanel1
+            // 
+            this.tableLayoutPanel1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.tableLayoutPanel1.ColumnCount = 3;
+            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 33.33333F));
+            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 33.33333F));
+            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 33.33333F));
+            this.tableLayoutPanel1.Controls.Add(this.rgbImage, 0, 0);
+            this.tableLayoutPanel1.Controls.Add(this.depthImage, 1, 0);
+            this.tableLayoutPanel1.Controls.Add(this.resultImage, 2, 0);
+            this.tableLayoutPanel1.Location = new System.Drawing.Point(13, 28);
+            this.tableLayoutPanel1.Name = "tableLayoutPanel1";
+            this.tableLayoutPanel1.RowCount = 1;
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(972, 241);
+            this.tableLayoutPanel1.TabIndex = 12;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(996, 469);
+            this.Controls.Add(this.tableLayoutPanel1);
             this.Controls.Add(this.statusStrip);
             this.Controls.Add(this.tableLayoutPanel3);
             this.Controls.Add(this.tableLayoutPanel2);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.gestureCheckBoxTable);
             this.Controls.Add(this.messageBox);
-            this.Controls.Add(this.resultImage);
-            this.Controls.Add(this.depthImage);
-            this.Controls.Add(this.rgbImage);
             this.Controls.Add(this.menuStrip);
             this.MainMenuStrip = this.menuStrip;
             this.Name = "MainForm";
@@ -347,6 +381,7 @@
             this.tableLayoutPanel3.PerformLayout();
             this.statusStrip.ResumeLayout(false);
             this.statusStrip.PerformLayout();
+            this.tableLayoutPanel1.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -379,5 +414,6 @@
         private System.Windows.Forms.CheckBox handOpen;
         private System.Windows.Forms.CheckBox fist;
         private System.Windows.Forms.CheckBox handClose;
+        private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
     }
 }
