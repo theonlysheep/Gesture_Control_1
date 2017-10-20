@@ -9,9 +9,6 @@ namespace streams.cs
 {
     class HandsRecognition
     {
-        // Ereignisdaklaration
-        public event EventHandler<UpdateStatusEventArgs> UpdateStatus = null;
-
         CursorConfiguration cursorConfiguration = null;
 
         private readonly Queue<Point3DF32>[] mCursorPoints;

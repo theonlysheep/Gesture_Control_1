@@ -85,13 +85,6 @@ namespace streams.cs
             }
         }
 
-        //public void SearchDevices()
-        //{
-        //    /* Save all input sources into DeviceInfo */
-        //    if (DeviceInfo != null)
-        //        SenseManager.CaptureManager.FilterByDeviceInfo(DeviceInfo);
-        //}
-
         public void CreateTimer()
         {
             /* Timer Initialization */
@@ -110,36 +103,6 @@ namespace streams.cs
         //    }
         //}
 
-
-        //public void CheckDevices()
-        //{
-        //    if (SenseManager.CaptureManager != null)
-        //    {
-        //        if (devices.Count == 0)
-        //        {
-        //            SetStatus("No device were found");
-        //            return;
-        //        }
-
-        //        if (DeviceInfo == null)
-        //        {
-        //            SetStatus("Device Failure");
-        //            return;
-        //        }
-        //    }
-
-        //    if (DeviceInfo == null)
-        //    {
-        //        SetStatus("Device Failure");
-        //        return;
-        //    }
-
-        //    if (DeviceInfo.model != RS.DeviceModel.DEVICE_MODEL_SR300)
-        //    {
-        //        SetStatus("Cursor mode is unsupported for chosen device");
-        //        return;
-        //    }
-        //}
 
         public void InitSenseManager()
         {
