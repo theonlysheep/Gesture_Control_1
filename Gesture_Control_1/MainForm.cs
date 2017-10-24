@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using RS = Intel.RealSense;
 using SampleDX; // Redering for bitmap
-using Intel.RealSense.HandCursor;
+
 
 
 
@@ -22,7 +22,7 @@ namespace streams.cs
         private Streams streams;
         private HandsRecognition handsRecognition;
 
-        private volatile bool closing = false; 
+        private volatile bool closing = false;
 
         // Layout 
         private ToolStripMenuItem[] streamMenue = new ToolStripMenuItem[RS.Capture.STREAM_LIMIT];
@@ -37,16 +37,29 @@ namespace streams.cs
 
         // Drawing Parameters 
         private Bitmap resultBitmap = null;
-        private float penSize = 3.0f;
 
-        // 
+        private class Item
+        {
+            public string Name;
+            public int Value;
+            public Item(string name, int value)
+            {
+                Name = name; Value = value;
+            }
+            public override string ToString()
+            {
+                // Generates the text shown in the combo box
+                return Name;
+            }
+        }
+
         public MainForm(Manager mngr)
         {
             InitializeComponent();
             manager = mngr;
             streams = new Streams(manager);
             handsRecognition = new HandsRecognition(manager, this);
-            
+
             // register event handler 
             manager.UpdateStatus += new EventHandler<UpdateStatusEventArgs>(UpdateStatus);
             streams.RenderFrame += new EventHandler<RenderFrameEventArgs>(RenderFrame);
@@ -66,14 +79,14 @@ namespace streams.cs
             // Fill drop down Menues 
             streams.ResetStreamTypes();
             PopulateDeviceMenu();
-         
+
             // Set up Renders für WindowsForms compability
             renders[0].SetHWND(rgbImage);
             renders[1].SetHWND(depthImage);
-            
+
             // Initialise Intel Realsense Components
             manager.CreateSession();
-            manager.CreateSenseManager();           
+            manager.CreateSenseManager();
             manager.CreateTimer();
         }
 
@@ -112,7 +125,7 @@ namespace streams.cs
             if (deviceMenu.DropDownItems.Count > 0)
             {
                 (deviceMenu.DropDownItems[0] as ToolStripMenuItem).Checked = true;
-                
+
             }
             else
             {
@@ -129,7 +142,7 @@ namespace streams.cs
                 }
             }
         }
-        
+
 
         // Start of Program 
         private void buttonStart_Click(object sender, EventArgs e)
@@ -138,7 +151,7 @@ namespace streams.cs
             menuStrip.Enabled = false;
             buttonStart.Enabled = false;
             buttonStop.Enabled = true;
-            ActivateGestureCheckboxes(false);
+
 
             // Reset all components
             manager.DeviceInfo = null;
@@ -148,13 +161,14 @@ namespace streams.cs
 
             streams.ConfigureStreams();
 
-            handsRecognition.ActivatedGestures = GetSelectedGestures();
-            handsRecognition.SetUpHandCursorModule();
-            handsRecognition.RegisterHandEvents();
-            handsRecognition.EnableGesturesFromSelection();
+            //handsRecognition.ActivatedGestures = GetSelectedGestures();
+            handsRecognition.SetUpHandModule();
+            //handsRecognition.EnableGesturesFromSelection();
+
+            PopulateGestureList();
 
             manager.InitSenseManager();
-            
+
             // Thread for Streaming 
             System.Threading.Thread thread1 = new System.Threading.Thread(DoWork);
             thread1.Start();
@@ -170,7 +184,7 @@ namespace streams.cs
                 while (!manager.Stop)
                 {
                     RS.Sample sample = manager.GetSample();
-
+                    manager.FrameNumber++;
                     streams.RenderStreams(sample);
                     //manager.ShowPerformanceTick();
                     handsRecognition.RecogniseHands(sample); //Todo
@@ -189,13 +203,17 @@ namespace streams.cs
                     buttonStart.Enabled = true;
                     buttonStop.Enabled = false;
                     menuStrip.Enabled = true;
-                    ActivateGestureCheckboxes(true);
+                    if (manager.Stop == true)
+                    {
+                        manager.SetStatus("Stopped");
+                    }
                     manager.SenseManager.Close();
                     if (closing) Close();
+
                 }
             ));
         }
-        
+
         public RS.DeviceInfo GetCheckedDevice()
         {
             foreach (ToolStripMenuItem e in deviceMenu.DropDownItems)
@@ -261,9 +279,9 @@ namespace streams.cs
         {
             foreach (ToolStripMenuItem e1 in deviceMenu.DropDownItems)
                 e1.Checked = (sender == e1);
-           
+
         }
-        
+
         private RS.StreamType GetSelectedStream()
         {
             if (radioDepth.Checked)
@@ -288,7 +306,7 @@ namespace streams.cs
                 streams.StreamType = selected_stream;
             }
         }
-        
+
         /*
          * Hands Rcognition Stuff
         */
@@ -330,57 +348,7 @@ namespace streams.cs
                 resultBitmap = new Bitmap(picture);
             }
         }
-
-        public void DisplayCursor(int numOfHands, Queue<RS.Point3DF32>[] cursorPoints, int[] cursorClick, BodySideType[] handSideType)
-        {
-            if (resultBitmap == null) return;
-
-            int scaleFactor = 1;
-            Graphics g = Graphics.FromImage(resultBitmap);
-
-            Color color = Color.GreenYellow;
-            Pen pen = new Pen(color, penSize);
-
-            for (int i = 0; i < numOfHands; ++i)
-            {
-                float sz = 8;
-                int blueColor = (handSideType[i] == BodySideType.BODY_SIDE_LEFT)
-                    ? 200
-                    : (handSideType[i] == BodySideType.BODY_SIDE_RIGHT) ? 100 : 0;
-
-                /// draw cursor trail
-
-                for (int j = 0; j < cursorPoints[i].Count; j++)
-                {
-                    float greenPart = (float)((Math.Max(Math.Min(cursorPoints[i].ElementAt(j).z / scaleFactor, 0.7), 0.2) - 0.2) / 0.5);
-
-                    pen.Color = Color.FromArgb(255, (int)(255 * (1 - greenPart)), (int)(255 * greenPart), blueColor);
-                    pen.Width = penSize;
-                    int x = (int)cursorPoints[i].ElementAt(j).x / scaleFactor;
-                    int y = (int)cursorPoints[i].ElementAt(j).y / scaleFactor;
-                    g.DrawEllipse(pen, x - sz / 2, y - sz / 2, sz, sz);
-                }
-
-
-                if (0 < cursorClick[i])
-                {
-                    color = Color.LightBlue;
-                    pen = new Pen(color, 10.0f);
-                    sz = 32;
-
-                    int x = 0, y = 0;
-                    if (cursorPoints[i].Count() > 0)
-                    {
-                        x = (int)cursorPoints[i].ElementAt(cursorPoints[i].Count - 1).x / scaleFactor;
-                        y = (int)cursorPoints[i].ElementAt(cursorPoints[i].Count - 1).y / scaleFactor;
-                    }
-
-                    g.DrawEllipse(pen, x - sz / 2, y - sz / 2, sz, sz);
-                }
-            }
-            pen.Dispose();
-        }
-
+        
         private void ResultPanel_Paint(object sender, PaintEventArgs e)
         {
             lock (this)
@@ -389,7 +357,6 @@ namespace streams.cs
                 Bitmap bitmapNew = new Bitmap(resultBitmap);
                 try
                 {
-
                     /* Keep the aspect ratio */
                     Rectangle rc = (sender as PictureBox).ClientRectangle;
                     float xscale = (float)rc.Width / (float)resultBitmap.Width;
@@ -414,23 +381,47 @@ namespace streams.cs
         {
             List<string> activatedGestures = new List<string>();
 
-            foreach (CheckBox checkBox in gestureCheckBoxTable.Controls)
+            foreach (object itemChecked in gestureListBox.CheckedItems)
             {
-                if (checkBox.Checked)
-                {
-                    activatedGestures.Add(checkBox.Name);
-                }
+                    activatedGestures.Add(itemChecked.ToString());
+    
             }
 
             return activatedGestures;
         }
 
-        private void ActivateGestureCheckboxes(bool enabled)
+        private delegate void UpdateGesturesToListDelegate(string gestureName, int index);
+        public void UpdateGesturesToList(string gestureName, int index)
         {
-            click.Enabled = enabled;
-            handOpen.Enabled = enabled;
-            handClose.Enabled = enabled;
-            fist.Enabled = false; // Not Configured jet 
+            gestureListBox.Invoke(new UpdateGesturesToListDelegate(delegate (string name, int cmbIndex)
+            {
+                gestureListBox.Items.Add(new Item(name, cmbIndex));
+            }), new object[] { gestureName, index });
+        }
+
+        private delegate void ResetGesturesListDelegate();
+        public void ResetGesturesList()
+        {
+            gestureListBox.Invoke(new ResetGesturesListDelegate(delegate ()
+                {
+                    gestureListBox.Text = "";
+                    gestureListBox.Items.Clear();
+                    gestureListBox.SelectedIndex = -1;
+                    gestureListBox.Enabled = false;
+                    gestureListBox.Size = new System.Drawing.Size(100, 20); // ?????????????????
+                }), new object[] { });
+        }
+
+        private delegate void UpdateGesturesListSizeDelegate();
+        public void UpdateGesturesListSize()
+        {
+            gestureListBox.Invoke(new UpdateGesturesListSizeDelegate(delegate ()
+            {
+                gestureListBox.Enabled = true;
+                gestureListBox.Size = new System.Drawing.Size(200, 150);
+                gestureListBox.Visible = true;
+            }), new object[] { });
+
         }
 
         private delegate void UpdateResultImageDelegate();
@@ -444,9 +435,185 @@ namespace streams.cs
 
         }
 
-        private void MainForm_Load(object sender, EventArgs e)
+        private void PopulateGestureList()
         {
+            if (handsRecognition.HandConfiguration != null)
+            {
+                // Publish List of Gesture for Selection
+                ResetGesturesList();
+                int totalNumOfGestures = handsRecognition.HandConfiguration.NumberOfGestures;
 
+                if (totalNumOfGestures > 0)
+                {
+
+                    for (int i = 0; i < totalNumOfGestures; i++)
+                    {
+                        string gestureNameFromIndex = string.Empty;
+                        if (handsRecognition.HandConfiguration.QueryGestureNameByIndex(i, out gestureNameFromIndex) ==
+                            RS.Status.STATUS_NO_ERROR)
+                        {
+                            UpdateGesturesToList(gestureNameFromIndex, i);
+                        }
+                    }
+
+                    UpdateGesturesListSize();
+                }
+            }
+        }
+
+        public void DisplayJoints(RS.Hand.JointData[][] nodes, int numOfHands)
+        {
+            if (resultBitmap == null) return;
+            if (nodes == null) return;
+
+
+            lock (this)
+            {
+                int scaleFactor = 1;
+
+                Graphics g = Graphics.FromImage(resultBitmap);
+
+                using (Pen boneColor = new Pen(Color.DodgerBlue, 3.0f))
+                {
+                    for (int i = 0; i < numOfHands; i++)
+                    {
+                        if (nodes[i][0] == null) continue;
+                        int baseX = (int)nodes[i][0].positionImage.x / scaleFactor;
+                        int baseY = (int)nodes[i][0].positionImage.y / scaleFactor;
+
+                        int wristX = (int)nodes[i][0].positionImage.x / scaleFactor;
+                        int wristY = (int)nodes[i][0].positionImage.y / scaleFactor;
+
+                        // Display Skeleton
+                        for (int j = 1; j < 22; j++)
+                        {
+                            if (nodes[i][j] == null) continue;
+                            int x = (int)nodes[i][j].positionImage.x / scaleFactor;
+                            int y = (int)nodes[i][j].positionImage.y / scaleFactor;
+
+                            if (nodes[i][j].confidence <= 0) continue;
+
+                            if (j == 2 || j == 6 || j == 10 || j == 14 || j == 18)
+                            {
+
+                                baseX = wristX;
+                                baseY = wristY;
+                            }
+
+                            g.DrawLine(boneColor, new Point(baseX, baseY), new Point(x, y));
+                            baseX = x;
+                            baseY = y;
+                        }
+
+
+                        // Display Joints 
+                        using (
+                            Pen red = new Pen(Color.Red, 3.0f),
+                                black = new Pen(Color.Black, 3.0f),
+                                green = new Pen(Color.Green, 3.0f),
+                                blue = new Pen(Color.Blue, 3.0f),
+                                cyan = new Pen(Color.Cyan, 3.0f),
+                                yellow = new Pen(Color.Yellow, 3.0f),
+                                orange = new Pen(Color.Orange, 3.0f))
+                        {
+                            Pen currnetPen = black;
+
+                            for (int j = 0; j < RS.Hand.HandData.NUMBER_OF_JOINTS; j++)
+                            {
+                                float sz = 4;
+
+                                int x = (int)nodes[i][j].positionImage.x / scaleFactor;
+                                int y = (int)nodes[i][j].positionImage.y / scaleFactor;
+
+                                if (nodes[i][j].confidence <= 0) continue;
+
+                                //Wrist
+                                if (j == 0)
+                                {
+                                    currnetPen = black;
+                                }
+
+                                //Center
+                                if (j == 1)
+                                {
+                                    currnetPen = red;
+                                    sz += 4;
+                                }
+
+                                //Thumb
+                                if (j == 2 || j == 3 || j == 4 || j == 5)
+                                {
+                                    currnetPen = green;
+                                }
+                                //Index Finger
+                                if (j == 6 || j == 7 || j == 8 || j == 9)
+                                {
+                                    currnetPen = blue;
+                                }
+                                //Finger
+                                if (j == 10 || j == 11 || j == 12 || j == 13)
+                                {
+                                    currnetPen = yellow;
+                                }
+                                //Ring Finger
+                                if (j == 14 || j == 15 || j == 16 || j == 17)
+                                {
+                                    currnetPen = cyan;
+                                }
+                                //Pinkey
+                                if (j == 18 || j == 19 || j == 20 || j == 21)
+                                {
+                                    currnetPen = orange;
+                                }
+
+
+                                if (j == 5 || j == 9 || j == 13 || j == 17 || j == 21)
+                                {
+                                    sz += 4;
+                                }
+
+                                g.DrawEllipse(currnetPen, x - sz / 2, y - sz / 2, sz, sz);
+                            }
+                        }
+                    }
+
+                }
+                g.Dispose();
+            }
+
+        }
+
+        public void DisplayExtremities(int numOfHands, RS.Hand.ExtremityData[][] extremitites = null)
+        {
+            if (resultBitmap == null) return;
+            if (extremitites == null) return;
+
+            int scaleFactor = 1;
+            Graphics g = Graphics.FromImage(resultBitmap);
+
+            float sz = 8;
+
+            Pen pen = new Pen(Color.Red, 3.0f);
+            for (int i = 0; i < numOfHands; ++i)
+            {
+                for (int j = 0; j < RS.Hand.HandData.NUMBER_OF_EXTREMITIES; ++j)
+                {
+                    int x = (int)extremitites[i][j].pointImage.x / scaleFactor;
+                    int y = (int)extremitites[i][j].pointImage.y / scaleFactor;
+                    g.DrawEllipse(pen, x - sz / 2, y - sz / 2, sz, sz);
+                }
+            }
+            pen.Dispose();
+        }
+        
+        private void gestureListBox_ItemCheck(object sender, ItemCheckEventArgs e)
+        {
+            // Workaround to include currently selsected item into condsidderation 
+            this.BeginInvoke(new Action(() =>
+            {
+                handsRecognition.EnableGesturesFromSelection();
+            }));
+            
         }
     }
 }
