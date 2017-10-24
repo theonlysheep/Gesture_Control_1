@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading.Tasks;
 using RS = Intel.RealSense;
 using System.Windows.Forms;
-using Intel.RealSense.HandCursor;
 
 namespace streams.cs
 {
@@ -17,13 +16,12 @@ namespace streams.cs
         public RS.DeviceInfo DeviceInfo { get; set; }
         public Timer timer;
 
-
         public bool Stop { get; set; }
 
         public event EventHandler<UpdateStatusEventArgs> UpdateStatus = null;
-
-        public CursorData cursorData = null;
         
+        public int FrameNumber{ get; set; }
+
         /*
          * Manage Session and SenseManager in central class
         */
@@ -106,7 +104,10 @@ namespace streams.cs
 
         public void InitSenseManager()
         {
-            if (SenseManager.Init() == RS.Status.STATUS_NO_ERROR) SetStatus("SenseManager Init Started");
+            if (SenseManager.Init() == RS.Status.STATUS_NO_ERROR)
+            {
+                SetStatus("SenseManager Init Successfull");                      
+            }
             else
             {
                 SetStatus("SenseManager Init Failed");
@@ -134,6 +135,16 @@ namespace streams.cs
                 return sample;
             }
             else return sample = null;
+        }
+
+        // Gets the maximum specified Range of the Device in mm
+        public float GetDeviceRange()
+        {
+            RS.Device device = SenseManager.CaptureManager.Device;
+
+            if (device != null) return device.DepthSensorRange.max;
+
+            else return -1;
         }
     }
 }
