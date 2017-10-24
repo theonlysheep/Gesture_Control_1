@@ -23,17 +23,40 @@ namespace streams.cs
             manager = mngr;
         }
         
-        public void ResetStreamTypes()
+        private void ResetStreamTypes()
         {
             StreamType = RS.StreamType.STREAM_TYPE_ANY;
         }
 
-        public void ConfigureStreams()
+        public void EnableStreamsFromSelection()
         {
-            RS.SampleReader sampleReader = RS.SampleReader.Activate(manager.SenseManager);
-            sampleReader.EnableStream(RS.StreamType.STREAM_TYPE_COLOR, 1920, 1080, 30);
-            sampleReader.EnableStream(RS.StreamType.STREAM_TYPE_DEPTH, 640, 480, 60);
-            sampleReader.EnableStream(RS.StreamType.STREAM_TYPE_IR, 640, 480, 60);
+            /* Set Color & Depth Resolution and enable streams */
+            if (StreamProfileSet != null)
+            {
+                /* Optional: Filter the data based on the request */
+                manager.SenseManager.CaptureManager.FilterByStreamProfiles(StreamProfileSet);
+
+                /* Enable raw data streaming for specific stream types */
+
+                // Set frame Rate, Height and With for all Sterams
+                for (int s = 0; s < RS.Capture.STREAM_LIMIT; s++)
+                {
+                    RS.StreamType st = RS.Capture.StreamTypeFromIndex(s);
+                    RS.StreamProfile info = StreamProfileSet[st];
+                    if (info.imageInfo.format != 0)
+                    {
+                        /* For simple request, you can also use sm.EnableStream(...) */
+                        RS.DataDesc desc = new RS.DataDesc();
+                        desc.streams[st].frameRate.min = desc.streams[st].frameRate.max = info.frameRate.max;
+                        desc.streams[st].sizeMin.height = desc.streams[st].sizeMax.height = info.imageInfo.height;
+                        desc.streams[st].sizeMin.width = desc.streams[st].sizeMax.width = info.imageInfo.width;
+                        desc.streams[st].options = info.options;
+                        desc.receivePartialSample = true;
+                        RS.SampleReader sampleReader = RS.SampleReader.Activate(manager.SenseManager);
+                        sampleReader.EnableStreams(desc);
+                    }
+                }
+            }
         }
 
         public void RenderStreams(RS.Sample sample)
@@ -41,18 +64,12 @@ namespace streams.cs
             /* Render streams */
             EventHandler<RenderFrameEventArgs> render = RenderFrame;
             RS.Image image = null;
-            if (render != null)
-            {                
-                image = sample[RS.StreamType.STREAM_TYPE_COLOR];
+            if (StreamType != RS.StreamType.STREAM_TYPE_ANY && render != null)
+            {
+                // ???????????????????????
+                image = sample[StreamType];
                 render(this, new RenderFrameEventArgs(0, image));
-
-                if (StreamType == RS.StreamType.STREAM_TYPE_ANY)
-                    return;
-                else
-                {
-                    image = sample[StreamType];
-                    render(this, new RenderFrameEventArgs(1, image));
-                }                
+                render(this, new RenderFrameEventArgs(1, image));
             }
         }
         
